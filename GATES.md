@@ -2,7 +2,7 @@
 
 OWNS: hub/**, firmware/**, tests/**, sim/**, tools/**, docs/**, assets/**, deploy/**, .github/**, requirements*.txt, .gitignore, README.md, GATES.md
 
-Scope: Implement the approved color voice terminal, preserving Catthew identity and household sources, and deliver a fork PR with verified VPS/device operation.
+Scope: Maintain the approved color voice terminal in the standalone zectrix-note4c-catthew repository, preserving Catthew identity and household sources, with verified VPS/device operation. The original fork PR is retained only as archived, unmerged review history.
 
 Run Python checks in an environment with `requirements.txt` installed. Latest local validation used the private `~/.local/share/catthew-note4c/test-venv/bin/python`; Linux CI installs requirements in a fresh venv.
 
