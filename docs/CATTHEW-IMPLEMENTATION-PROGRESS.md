@@ -2,13 +2,19 @@
 
 Approval: canvas fb-65 and user message “approved plan”. Source of truth: `docs/CATTHEW-NOTE4C-PLAN.md`.
 
-Workspace: `/Users/theduy/Repo/hearth-catthew-note4c`, branch `feat/catthew-note4c`, base `edd75fd7ea7e9879b141a84aa39ce2c74b6c92bc`. Fork: https://github.com/theduy3/zectrix-note4c-catthew. Draft PR: https://github.com/theduy3/zectrix-note4c-catthew/pull/1. No automatic merge.
+Workspace: `/Users/theduy/Repo/zectrix-note4c-catthew`, branch `main`. Standalone repository: https://github.com/theduy3/zectrix-note4c-catthew. Product baseline: `c74fe4dfaf440204fd58b57d6c0a65d0c9936c6b`, preserving history from original base `edd75fd7ea7e9879b141a84aa39ce2c74b6c92bc`. The original fork and unmerged PR are retained at https://github.com/theduy3/hearth-catthew-fork-archive/pull/1. No old PR was merged.
+
+## Standalone repository migration
+
+The user requested a new independent repository rather than a GitHub fork. Repository ID1456923472 is owned by theduy3 with fork=false; the previous fork ID1455851240 is the archive. Main now contains the actual Note4C product instead of the original upstream-only tree. The local checkout has its own .git directory. A verified complete Git bundle and repository/PR metadata are retained privately under `~/.local/share/catthew-note4c/repository-migration-1455851240/`.
+
+Runtime, firmware, tests, fonts and licenses were imported unchanged. Repository documentation and CI branch triggers were adjusted for standalone main/pull-request operation. Historical build and review links point to the archive; no server restart, device flash or credential change was required. Original source licenses and attribution remain intact. Existing physical acceptance and independent-review gaps remain open.
 
 ## Verified delivery checkpoint
 
-- Latest correction `41c302d` passes both SDK/native build and105 Linux host tests in [run43364193431](https://github.com/theduy3/zectrix-note4c-catthew/actions/runs/43364193431). That artifact was reflashed without NVS erasure and all written regions verified. USB remains configured=false; private current log is `builds/41c302d/flash.log`. Firmware app SHA256: `d3519e1abf36059b60b31296b3def9a07ba41183356c00a8aad3ffc62208bcad`.
+- Latest correction `41c302d` passes both SDK/native build and105 Linux host tests in [run43364193431](https://github.com/theduy3/hearth-catthew-fork-archive/actions/runs/43364193431). That artifact was reflashed without NVS erasure and all written regions verified. USB remains configured=false; private current log is `builds/41c302d/flash.log`. Firmware app SHA256: `d3519e1abf36059b60b31296b3def9a07ba41183356c00a8aad3ffc62208bcad`.
 - Backend checkpoint `3776740`, projector firmware `ec40016`, lifecycle fixes `b20ab90` and provisioning/build recovery `d3acefa` were pushed.
-- [Firmware run43360727456](https://github.com/theduy3/zectrix-note4c-catthew/actions/runs/43360727456) built source `d3acefaaa294c93e97128c94b0afe5939f6ea1db` successfully with the digest-pinned ESP-IDF6.1 image. cJSON is an explicit pinned managed component; no compiled Wi-Fi or token settings.
+- [Firmware run43360727456](https://github.com/theduy3/hearth-catthew-fork-archive/actions/runs/43360727456) built source `d3acefaaa294c93e97128c94b0afe5939f6ea1db` successfully with the digest-pinned ESP-IDF6.1 image. cJSON is an explicit pinned managed component; no compiled Wi-Fi or token settings.
 - The actual backed-up Note4C was flashed from that artifact. Bootloader, partition table and application all passed hardware verify-flash. Local private log: `$HOME/.local/share/catthew-note4c/builds/d3acefa/flash.log`. USB application protocol answers with the expected MAC and `configured=false`.
 - Full original flash remains private,16,777,216 bytes, SHA256 `5fdd603eb016137b4535ac9d169b58c4bf815580e6a3e0329b0e1431a93b6c41`; original hardware comparison and fresh local checksum/permission verification pass. No credentials have been provisioned yet.
 - Current host suite: **105 tests pass in Linux CI** after deleting the obsolete standalone board/LAN/model/simulator stack and its dedicated tests. The current button timing coverage was preserved as a standalone native test. Immediately before that removal, all147 tests plus4 provisioning tests passed.
@@ -50,7 +56,7 @@ The earlier unchanged-server MCP reconcile retained seven deferred tools. A supp
 
 User-authorized closure corrections completed the three elapsed records and classified the future closure without completing it. All source dates/metadata, older completed closures and the cancelled five-item grocery history were preserved. No Google Calendar mutation or fabricated live grocery item occurred. Private verification is `grocery-events-verification.json`; source/runtime backups and original profile-config bytes are retained privately.
 
-Earlier independent grocery/event review findings were fixed with regressions. Latest typed-routing changes passed self-review,137tests, SDK compile and live routing, but a fresh independent follow-up is still blocked: the review service returned upstream502 and the fallback CLI returned invalid_params without review output. G7 remains open and PR1 remains draft/unmerged. G5/G6 physical and household acceptance also remain separate.
+Earlier independent grocery/event review findings were fixed with regressions. Latest typed-routing changes passed self-review,137tests, SDK compile and live routing, but a fresh independent follow-up is still blocked: the review service returned upstream502 and the fallback CLI returned invalid_params without review output. G7 remains open; the original draft PR is now archived and unmerged. G5/G6 physical and household acceptance also remain separate.
 
 ## Historical: tasks and chat two-screen display
 
@@ -87,7 +93,7 @@ Hermes container `hermes`, UID/GID1500, host networking. Host volume `/var/lib/d
 
 ## Remaining work and human boundary
 
-1. Draft PR1 is updated with source review, build/flash evidence and pending G5/G6. Preserve this workspace; the next required input is human pairing/physical acceptance.
+1. The original PR1 remains archived and unmerged with source review, build/flash evidence and pending G5/G6. Continue development in the standalone repository/workspace; remaining physical acceptance and independent review are not implied by repository migration.
 2. User runs `./tools/setup-note4c.sh`: physically confirms labeled B/W/R/Y patches, privately enters Wi-Fi, checks English voice, navigation/interruption, and fresh voice delivery while Mac sleeps and Note4C uses wall power. The assistant cannot establish physical color/microphone/speaker correctness from software previews or synthetic speech.
 3. Run the individually confirmed live test record for task/event creation, private approval/edit/delete, cleanup, shared Telegram/CLI reads and restart/reconnect. No actual family record has been created/edited/deleted during verification so far. Pairing does not authorize those mutations.
 4. Fresh final product gates/review, PR update, authorized workspace preservation and durable finalization. Keep PR unmerged. Do not declare whole-product completion while human/live gates remain pending.

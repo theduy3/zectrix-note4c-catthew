@@ -1,7 +1,9 @@
 name: Note4C firmware
 on:
   push:
-    branches: [main, feat/catthew-note4c]
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read

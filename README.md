@@ -2,7 +2,9 @@
 
 A four-color household voice terminal for the existing Catthew Hermes profile. The Zectrix Note4C handles buttons, microphone, speaker and display. Bluehost runs Hermes, speech recognition, speech synthesis, household tools and screen rendering, so the Mac is needed only for setup and development.
 
-This fork targets the **ESP32-S3 N16R8 Note4C with a real 400 × 300 black/white/red/yellow panel**. Firmware contains no Wi-Fi password, device token or model credential.
+This project targets the **ESP32-S3 N16R8 Note4C with a real 400 × 300 black/white/red/yellow panel**. Firmware contains no Wi-Fi password, device token or model credential.
+
+This is a standalone repository owned by `theduy3`, with the current product on `main`. The previous fork and its unmerged review record are retained in [hearth-catthew-fork-archive](https://github.com/theduy3/hearth-catthew-fork-archive). Original source history, licenses and attribution are preserved.
 
 ## Controls
 
@@ -29,7 +31,7 @@ The household MCP exposes scoped record operations. It does not expose a shell, 
 
 ## Current verified checkpoint
 
-Installed firmware `09d1fa2e92dc437be0192ca489561b47c5a9d627` built with the pinned ESP-IDF 6.1 toolchain in [Actions run 43392558966](https://github.com/theduy3/zectrix-note4c-catthew/actions/runs/43392558966). Its bootloader, partition table and application were identity-checked, flashed and verified on the backed-up Note4C with pairing retained. Wi-Fi/time/authenticated-frame readiness passed. Backend `b0d61ce` and all137tests also passed [run43397344604](https://github.com/theduy3/zectrix-note4c-catthew/actions/runs/43397344604). Earlier user evidence confirmed the full-color settling waveform and voice; current physical request-directed navigation remains part of acceptance.
+Installed firmware `09d1fa2e92dc437be0192ca489561b47c5a9d627` built with the pinned ESP-IDF 6.1 toolchain in [Actions run 43392558966](https://github.com/theduy3/hearth-catthew-fork-archive/actions/runs/43392558966). Its bootloader, partition table and application were identity-checked, flashed and verified on the backed-up Note4C with pairing retained. Wi-Fi/time/authenticated-frame readiness passed. Backend `b0d61ce` and all137tests also passed [run43397344604](https://github.com/theduy3/hearth-catthew-fork-archive/actions/runs/43397344604). Earlier user evidence confirmed the full-color settling waveform and voice; current physical request-directed navigation remains part of acceptance.
 
 The HTTPS backend, native color frames, restricted model path, unchanged SOUL, speech service and Catthew Telegram connection pass release checks. A fresh synthetic English voice round trip returns text and 16 kHz speaker audio. **Male-voice/latency confirmation, interruption/Mac-asleep acceptance and individually confirmed live household write/approval tests remain pending.** See [GATES.md](GATES.md) for the distinction between automatic and human evidence.
 
@@ -101,6 +103,6 @@ The voice smoke test uses a synthetic greeting and creates no family records. Af
 - [Device protocol and native pixel format](docs/NOTE4C-PROTOCOL.md)
 - [Acceptance gates](GATES.md)
 - [Standards and specification source review](docs/NOTE4C-REVIEW.md)
-- [Draft PR #1](https://github.com/theduy3/zectrix-note4c-catthew/pull/1), with no automatic merge
+- [Archived fork PR #1](https://github.com/theduy3/hearth-catthew-fork-archive/pull/1), retained as unmerged review history
 
 Unmodified DejaVu fonts and their attribution are in [assets/fonts/](assets/fonts/). Speech dependencies and pinned model provenance are maintained separately by the speech preparation tools; the Piper engine is GPLv3 and is not vendored into the firmware.

@@ -31,7 +31,7 @@ The subsequent user-requested09d1fa2 increment limits Tasks to the local day, ex
 
 The final self-review also reproduced local-date underflow and all-day exclusive-end overflow at datetime boundaries. Both parsers now fail closed, and the today-only rendering regression covers these cases so an extreme date cannot block the page or household projection.
 
-Fresh independent review of this final routing increment remains unavailable: the review service failed with upstream502 before doing any work, and a no-tools CLI fallback failed with invalid_params. Those attempts provide no review evidence. Keep G7 open and PR1 draft; do not claim an independent whole-branch review of the final routing increment. Physical button/speaker/refresh and a real grocery-write pilot remain separate acceptance.
+Fresh independent review of this final routing increment remains unavailable: the review service failed with upstream502 before doing any work, and a no-tools CLI fallback failed with invalid_params. Those attempts provide no review evidence. Keep G7 open; retain the archived fork's PR1 as unmerged history and arrange independent follow-up in the standalone repository. do not claim an independent whole-branch review of the final routing increment. Physical button/speaker/refresh and a real grocery-write pilot remain separate acceptance.
 
 ## Historical two-screen display review
 

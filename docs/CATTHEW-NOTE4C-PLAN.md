@@ -167,8 +167,8 @@ Completed: clone, research, read-only VPS inspection, local baseline verificatio
 Proposed delivery path for final approval:
 
 - Source: `shantanugoel/hearth`, base `main` at inspected commit `edd75fd7ea7e9879b141a84aa39ce2c74b6c92bc` (verify freshness before implementation).
-- Fork: `theduy3/zectrix-note4c-catthew`, renamed from `theduy3/hearth` at the user's request. This is the same GitHub repository; retain its history and existing draft PR.
-- Feature branch: `feat/catthew-note4c`; PR targets the fork's `main`, not upstream. Create a reviewable PR with verification evidence. Do not merge automatically; the annotation requests a fork and PR, not a merge method or upstream submission.
+- Repository: `theduy3/zectrix-note4c-catthew` is now standalone, recreated at the user's explicit request. The original fork is preserved as `theduy3/hearth-catthew-fork-archive`.
+- Current branch: `main` starts from product snapshot `c74fe4d`, preserving its source history and licenses. The original `feat/catthew-note4c` → fork `main` PR is retained unmerged in the archive. Creating the new baseline did not merge that PR or submit anything upstream.
 - Environment: existing Bluehost VPS and this user's attached Note4C; hostname `zectrix.theduy.cloud`. The final plan was approved; rollout still requires the concrete prerequisite checks below and must stop on missing credentials or external state.
 - Required checks: baseline plus changed-flow tests, color simulator, ESP-IDF build, authenticated HTTPS checks, household scope/confirmation tests, live source verification, physical four-color/button/audio acceptance, restart/retry reconciliation, and existing Catthew Telegram/CLI regression checks.
 - Before rollout: specify the runtime user/private network, service commands, resource limits, disposable test records, DNS management path, and recovery commands in the executable implementation plan. Never silently expand authority to unrelated VPS services.
