@@ -2,7 +2,15 @@
 
 Approval: canvas fb-65 and user message “approved plan”. Source of truth: `docs/CATTHEW-NOTE4C-PLAN.md`.
 
-Workspace: `/Users/theduy/Repo/zectrix-note4c-catthew`, branch `main`. Standalone repository: https://github.com/theduy3/zectrix-note4c-catthew. Product baseline: `c74fe4dfaf440204fd58b57d6c0a65d0c9936c6b`, preserving history from original base `edd75fd7ea7e9879b141a84aa39ce2c74b6c92bc`. The original fork and unmerged PR are retained at https://github.com/theduy3/hearth-catthew-fork-archive/pull/1. No old PR was merged.
+Current feature workspace: `/Users/theduy/Repo/zectrix-note4c-catthew-memory`, branch `feat/shared-catthew-memory`. Default `main` checkout: `/Users/theduy/Repo/zectrix-note4c-catthew`. Standalone repository: https://github.com/theduy3/zectrix-note4c-catthew. Product baseline: `c74fe4dfaf440204fd58b57d6c0a65d0c9936c6b`, preserving history from original base `edd75fd7ea7e9879b141a84aa39ce2c74b6c92bc`. The original fork and unmerged PR are retained at https://github.com/theduy3/hearth-catthew-fork-archive/pull/1. No old PR was merged.
+
+## General voice and shared knowledge
+
+The user clarified that the already-connected Note4C must support general conversation with Catthew, including household inventory remembered on Bluehost and retrievable from Telegram. Tasks/Grocery are display views only. API native tools remain restricted; existing SOUL and curated prompt-memory files are unchanged. Catthew-managed `kittyggup` reference notes now support safe remember/update through the shared household MCP, with live search, exact revisions, retry IDs and retained history. Existing family reference notes remain read-only.
+
+The installed Hermes resolver already selects the household MCP for Telegram, so Telegram's existing configuration and native capabilities remain unchanged. Inventory memory does not create task/grocery records or select a page. Explicit shopping-list reads now select groceries as edits already did. A task-only read and task/grocery-only display cache remove unrelated Calendar/reference fetching from ordinary voice completion.
+
+151 host tests pass. A bounded independent review inspected the changed runtime/test code and found no confirmed actionable defect; it did not establish live Telegram or physical-device behavior. Live deployment and model-tool verification are pending for this increment. Original whole-branch/physical acceptance gaps remain distinct.
 
 ## Standalone repository migration
 

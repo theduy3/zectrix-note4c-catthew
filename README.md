@@ -1,6 +1,6 @@
 # zectrix-note4c-catthew
 
-A four-color household voice terminal for the existing Catthew Hermes profile. The Zectrix Note4C handles buttons, microphone, speaker and display. Bluehost runs Hermes, speech recognition, speech synthesis, household tools and screen rendering, so the Mac is needed only for setup and development.
+A general voice interface to the existing Catthew Hermes profile, with a four-color household display. Talk to Catthew about any topic; Tasks and Grocery Shopping are display views, not conversation limits. The Zectrix Note4C handles buttons, microphone, speaker and display. Bluehost runs Hermes, shared household knowledge, speech recognition, speech synthesis, household tools and screen rendering, so the Mac is needed only for setup and development.
 
 This project targets the **ESP32-S3 N16R8 Note4C with a real 400 × 300 black/white/red/yellow panel**. Firmware contains no Wi-Fi password, device token or model credential.
 
@@ -14,7 +14,7 @@ This is a standalone repository owned by `theduy3`, with the current product on 
 - **Short-press Up:** return to the previous page.
 - **Hold Down:** stop audio/display work safely and enter deep sleep. The front button wakes the device.
 
-There are exactly two screens: **Tasks** and **Grocery Shopping**. Tasks shows up to five tasks due **today in America/Vancouver**, with an overflow count. Grocery records, overdue work, undated work and future work do not appear there; hidden tasks remain in the shared records until completed. Grocery Shopping shows only needed item names, up to seven at once; its empty list has no placeholder instruction. Purchased items disappear. Ask Catthew by voice to add groceries, change quantities or check off purchases. Asking for tasks refreshes and opens Tasks; modifying groceries refreshes and opens Grocery Shopping. Replies play through the speaker, and unrelated conversation leaves the selected screen alone. Either navigation direction toggles between the two screens. Hidden calendar/notes or reply-text changes do not repaint them.
+There are exactly two screens: **Tasks** and **Grocery Shopping**. Tasks shows up to five tasks due **today in America/Vancouver**, with an overflow count. Grocery records, overdue work, undated work and future work do not appear there; hidden tasks remain in the shared records until completed. Grocery Shopping shows only needed item names, up to seven at once; its empty list has no placeholder instruction. Purchased items disappear. Ask Catthew by voice to add groceries, change quantities or check off purchases. Asking for tasks refreshes and opens Tasks; asking for the shopping list or modifying groceries refreshes and opens Grocery Shopping. Replies play through the speaker, and unrelated conversation leaves the selected screen alone. Either navigation direction toggles between the two screens. Hidden calendar/notes or reply-text changes do not repaint them.
 
 The panel uses full refreshes; the user observed about15seconds for a page change, with flashing stopping once it settles. Navigation presses during a refresh are combined; recording and reply playback run independently. Recording and processing use the indicator rather than additional screen refreshes. An offline badge distinguishes a cached page from current data.
 
@@ -28,6 +28,14 @@ Catthew keeps its existing SOUL. The user-selected model is `openai-codex` / `gp
 - Calendar edits/deletions create proposals. A private, expiring, one-use human confirmation authorizes the exact version and change. Device buttons cannot approve changes.
 
 The household MCP exposes scoped record operations. It does not expose a shell, arbitrary paths, calendar selection or an approval/apply tool to the model. The terminal checks the native Hermes tool policy before every turn and refuses unexpected capabilities.
+
+## Remembering across voice and Telegram
+
+Ask Catthew to remember household facts, inventory items, locations or preferences. It searches existing reference notes first, then saves a new fact or updates a Catthew-managed fact using its current revision. These are shared Bluehost records under `/vault/References/Catthew`, tagged `kittyggup`, so Telegram and Note4C can look them up without sharing their entire conversation threads. Existing family reference notes remain read-only through these tools.
+
+For example, you can tell Catthew where you keep a household item, then ask about that location in Telegram. Inventory is distinct from a grocery shopping request or a task: remembering it does not add a checklist item, create a Calendar event or select another screen. Replies remain spoken. Facts are saved only through successful tool results, with duplicate-retry protection and retained prior versions; do not treat a conversational promise alone as proof of a saved record.
+
+The display refresh reads only tasks and groceries. Calendar and reference notes are fetched through their tools when a conversation needs them, rather than on every voice completion or display poll.
 
 ## Current verified checkpoint
 
@@ -77,7 +85,7 @@ Writing additionally requires `--write`, a private verified full factory backup,
 
 The local Piper voice is Joe (`en_US-joe-medium`, male US-English, CC0 dataset). Whisper remains base.en int8. The requested731MB Parakeet Unified Q8 candidate was prepared and tested but is inactive: it measured slower and used more resident memory on this VPS. The user chose the lowest measured latency, so Whisper is retained. See [measurements and decision](docs/PARAKEET-BENCHMARK.md). Active requests and completed text awaiting audio poll every500ms; idle/terminal requests poll every5seconds. A regression trace covers the completion boundary that previously caused a five-second wait for ready audio.
 
-`tools.voice_smoke` reports upload, audio-ready/download timings and status transitions without transcript or reply text. Measured VPS audio readiness for the synthetic greeting was about4.3–4.4seconds. A later read-only task query including record access and page selection took22.4seconds. These are different workloads and neither measures end-to-end physical-device latency.
+`tools.voice_smoke` reports upload, audio-ready/download timings and status transitions without transcript or reply text. Historical VPS audio readiness before the shared-memory/display-fetch change: the synthetic greeting took about4.3–4.4seconds. A read-only task query including record access and page selection took22.4seconds. These are different workloads and neither measures end-to-end physical-device latency. The removed Calendar/reference projection work has not yet been assigned a measured latency saving.
 
 ## VPS operation
 

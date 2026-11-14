@@ -88,16 +88,15 @@ class TerminalTests(unittest.TestCase):
         self.assertEqual(status, {"request": None})
         self.assertEqual(self.agent_calls, [])
 
-    def test_projection_cache_survives_restart_during_calendar_outage(self):
-        self.household.calendar.list_events = lambda *a: [{"id": "saved", "summary": "Family event"}]
+    def test_projection_cache_survives_restart_during_vault_outage(self):
         self.state.refresh()
         self.httpd.shutdown()
         self.state.close()
-        self.household.calendar.list_events = lambda *a: (_ for _ in ()).throw(RuntimeError("unavailable"))
+        self.household.tasks = lambda: (_ for _ in ()).throw(RuntimeError("unavailable"))
         restarted = TerminalState(self.journal, self.approvals, self.household, self.state.gateway, self.speech,
                                   token="d" * 48, origin=self.state.origin)
         try:
-            self.assertEqual(restarted.poster()["events"][0]["summary"], "Family event")
+            self.assertEqual(restarted.poster()["tasks"][0]["title"], "Family task")
             self.assertTrue(restarted.poster()["stale"])
             self.assertEqual(restarted.cache_path.stat().st_mode & 0o077, 0)
         finally:
@@ -181,9 +180,42 @@ class TerminalTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, 410)
         caught.exception.close()
 
-    def test_calendar_failure_preserves_last_good_projection_and_marks_stale(self):
+    def test_inventory_conversation_is_spoken_without_selecting_a_page(self):
+        self.speech.transcribe = lambda data: "Remember where I keep the spare lightbulbs."
+        self.state.gateway.turn = lambda text, *args, **kw: self.agent_calls.append(text) or "I saved that household fact."
+        job = self.journal.accept('note4c', 'inventory-chat', wrap_pcm16(b'\0\0' * 1600))
+        self.state.wake.set()
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            result = self.journal.get('note4c', job['id'])
+            if result['speech_status'] == 'ready':
+                break
+            time.sleep(.01)
+        self.assertEqual(result['status'], 'completed')
+        self.assertFalse(self.journal.page(job['id']))
+        self.assertIn('household_remember', self.agent_calls[0])
+        self.assertIn('household_search_notes', self.agent_calls[0])
+        self.assertIn('general', self.agent_calls[0].lower())
+        self.assertIn('Telegram', self.agent_calls[0])
+
+    def test_display_refresh_does_not_fetch_unshown_calendar_or_reference_notes(self):
+        calls = []
+        def forbidden(*args):
+            calls.append(True)
+            raise RuntimeError('unrelated source unavailable')
+        self.household.calendar.list_events = forbidden
+        self.household.reference_notes = forbidden
         self.state.refresh()
-        self.household.calendar.list_events = lambda *a: (_ for _ in ()).throw(RuntimeError("private provider error"))
+        poster = self.state.poster()
+        self.assertEqual(calls, [])
+        self.assertFalse(poster['stale'])
+        self.assertEqual(poster['tasks'][0]['title'], 'Family task')
+        self.assertNotIn('events', poster)
+        self.assertNotIn('notes', poster)
+
+    def test_vault_failure_preserves_last_good_projection_and_marks_stale(self):
+        self.state.refresh()
+        self.household.tasks = lambda: (_ for _ in ()).throw(RuntimeError("private provider error"))
         self.state.refresh()
         with self.request("/v1/poster") as response:
             poster = json.load(response)

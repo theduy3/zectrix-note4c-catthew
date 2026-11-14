@@ -236,16 +236,84 @@ class Household:
             pos = body.casefold().find(query)
             if pos < 0 and query not in title.casefold():
                 continue
-            start = max(0, pos - 150)
+            managed = self._managed_memory(path, meta) and len(body) <= 2000
+            start = 0 if managed else max(0, pos - 150)
             found.append({"id": _digest(str(path.relative_to(self.vault)).encode())[:24],
-                          "title": title[:300], "text": body[start:start + 2000]})
+                          "title": title[:300], "text": body[start:start + 2000],
+                          "revision": _digest(raw), "managed_memory": managed})
             if len(found) >= 8:
                 break
         return found
 
+    def _managed_memory(self, path, meta):
+        directory = self.vault / "References/Catthew"
+        return (path.parent == directory and directory.resolve() == directory
+                and re.fullmatch(r"catthew-memory-[a-f0-9]{32}\.md", path.name) is not None
+                and meta.get("type") == "catthew-memory" and _has_tag(meta, "", "kittyggup"))
+
+    def _memory_result(self, path, meta, body, raw):
+        return {"ok": True, "id": _digest(str(path.relative_to(self.vault)).encode())[:24],
+                "title": str(meta["title"]), "text": body, "revision": _digest(raw), "managed_memory": True}
+
+    def remember(self, operation_id, title, content):
+        """Save one explicitly provided fact in shared, live-searchable reference notes."""
+        identity = _digest(("memory:" + _text(operation_id, 128)).encode())[:32]
+        title, content = _text(title, 120), _text(content, 1500)
+        if any(ord(char) < 32 for char in title):
+            raise ValueError("memory title must be one plain text line")
+        fingerprint = _digest(json.dumps([title, content], ensure_ascii=False).encode())
+        body = f"# {title}\n\n{content}\n"
+        with self._locked():
+            directory = self.vault
+            for name in ("References", "Catthew"):
+                directory = directory / name
+                if directory.is_symlink() or directory.resolve() != directory:
+                    raise ScopeError("shared memory directory must not be a symbolic link")
+                directory.mkdir(mode=0o700, exist_ok=True)
+            path = directory / f"catthew-memory-{identity}.md"
+            if path.is_symlink():
+                raise ScopeError("shared memory must be a regular file")
+            if path.exists():
+                if path.stat().st_size > 256 * 1024:
+                    raise ScopeError("shared memory record exceeds its size limit")
+                raw = path.read_bytes()
+                meta, existing_body = _parse(raw)
+                if (not self._managed_memory(path, meta) or meta.get("terminal_fingerprint") != fingerprint
+                        or meta.get("title") != title or existing_body != body):
+                    raise ScopeError("memory operation changed; search current records before retrying")
+            else:
+                meta = {"id": identity, "title": title, "type": "catthew-memory", "tags": ["kittyggup"],
+                        "updated": datetime.now(PACIFIC).isoformat(), "terminal_fingerprint": fingerprint}
+                raw = self._write(path, meta, body)
+            return self._memory_result(path, meta, body, raw)
+
+    def update_memory(self, note_id, revision, content):
+        if not isinstance(note_id, str) or re.fullmatch(r"[a-f0-9]{24}", note_id) is None:
+            raise ValueError("invalid shared memory ID")
+        if not isinstance(revision, str) or re.fullmatch(r"[a-f0-9]{64}", revision) is None:
+            raise ValueError("invalid shared memory revision")
+        content = _text(content, 1500)
+        with self._locked():
+            for path, meta, body, raw in self._records(self.vault / "References/Catthew"):
+                if not self._managed_memory(path, meta) or len(body) > 2000:
+                    continue
+                if _digest(str(path.relative_to(self.vault)).encode())[:24] != note_id:
+                    continue
+                if _digest(raw) != revision:
+                    raise ScopeError("shared memory changed; search it again before editing")
+                title = _text(meta.get("title"), 120)
+                replacement = f"# {title}\n\n{content}\n"
+                if body == replacement:
+                    return self._memory_result(path, meta, body, raw)
+                meta["updated"] = datetime.now(PACIFIC).isoformat()
+                saved = self._write(path, meta, replacement, expected=revision)
+                return self._memory_result(path, meta, replacement, saved)
+        raise ScopeError("no matching Catthew-managed shared memory record")
+
     def _write(self, path, meta, body, *, expected=None):
-        if path.is_symlink() or not any(path.resolve().is_relative_to(self.vault / "Tasks" / name) for name in ("tasks", "bugs", "ideas")) or not _has_tag(meta, body, "catthew"):
-            raise ScopeError("task is outside the authorized Catthew workflow")
+        task_scope = any(path.resolve().is_relative_to(self.vault / "Tasks" / name) for name in ("tasks", "bugs", "ideas")) and _has_tag(meta, body, "catthew")
+        if path.is_symlink() or not (task_scope or self._managed_memory(path, meta)):
+            raise ScopeError("record is outside the authorized Catthew workflow")
         if expected is not None and (not path.exists() or _digest(path.read_bytes()) != expected):
             raise ScopeError("task changed; read it again before editing")
         raw = _encode(meta, body)
