@@ -20,7 +20,7 @@ The panel uses full refreshes; the user observed about15seconds for a page chang
 
 ## Household scope
 
-Catthew keeps its existing SOUL. The user-selected model is `openai-codex` / `gpt-6.1-terra`; setup and release checks preserve that choice. Note4C has a separate persistent conversation while sharing the same underlying records with Telegram and CLI.
+Catthew keeps its existing SOUL. The user-selected model is `openai-codex` / `gpt-6.1-terra`; setup and release checks preserve that choice. Zectrix voice requests ask for **low reasoning effort** through supported per-request model options. The Catthew profile default and other gateways' reasoning settings remain unchanged; this is the same central Catthew, not another model or agent. Note4C has a separate persistent conversation while sharing the same underlying records with Telegram and CLI.
 
 - Calendar: **Kittyggup Family**, timezone **America/Vancouver**.
 - Tasks: exact `catthew` tag in existing `Tasks/tasks`, `Tasks/bugs` and `Tasks/ideas`.
@@ -88,6 +88,8 @@ Writing additionally requires `--write`, a private verified full factory backup,
 Catthew now receives its small approved tool catalog directly (`tools.tool_search.enabled: off` in the Catthew profile). This removes tool-description round trips without changing the model, voice, allowed tools or central-agent/gateway architecture.
 
 A fixed recorded question about the user's saved voice-topic preference was measured through Whisper, Catthew and Joe, using the existing voice worker with an isolated journal and stubbed display lists. No audio was delivered to the physical tablet. Across three fresh sessions per setting, median server-side audio readiness fell from **24.6seconds to11.9seconds (52% faster)**. Tool-description calls fell from one to zero; note lookups fell from two–three to one–two. All replies correctly used the real saved preference; no write/page actions occurred.
+
+The Note4C adapter also requests **low reasoning effort for each voice turn**, while the central profile remains at its existing medium default for other gateways. In separate read-only comparisons with the direct catalog already active (three runs per setting), task-list audio readiness measured12.1→5.4seconds and grocery-list readiness5.6→4.5seconds. Answers matched the current records and no write/page actions occurred. These are separate task/grocery workloads, not additional percentages to combine with the saved-fact result above.
 
 Simple greeting controls were variable: an initial fresh-session comparison measured medians2.8/4.2seconds and was rolled back for further checks. Repeating with one explicitly excluded warmup and three measured turns in a persistent conversation gave4.0/2.9seconds. These small samples establish no universal greeting-speed claim. First requests and complex questions still vary; recording time, network upload, device polling and physical playback start are outside the measurement. The central profile setting applies to Catthew across its gateways, preserving each gateway's existing tool permissions.
 
