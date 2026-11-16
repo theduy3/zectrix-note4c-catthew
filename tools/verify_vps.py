@@ -19,6 +19,7 @@ c=yaml.safe_load((profile/'config.yaml').read_text())
 raw=(root/'catthew-terminal-state/terminal.env').read_text()
 checks={'model':c.get('model',{}).get('default')=='devin/swe-2',
         'provider':c.get('model',{}).get('provider')=='cliproxy',
+        'reasoning_effort':c.get('model',{}).get('parameters',{}).get('reasoning_effort')=='max',
         'soul_sha256':hashlib.sha256((profile/'SOUL.md').read_bytes()).hexdigest()}
 try:
  Gateway(setting(raw,'HEARTH_HERMES_URL'),setting(raw,'HEARTH_HERMES_KEY'))._assert_household_policy()
