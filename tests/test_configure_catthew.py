@@ -23,7 +23,8 @@ class ConfigureTests(unittest.TestCase):
         self.python.touch()
         self.state = self.root / "terminal-state"
         self.root_config = {"platforms": {"telegram": {"enabled": True}}, "model": {"default": "other-profile-model"}}
-        self.profile_config = {"model": {"default": "grok-4.7", "provider": "xai-oauth"},
+        self.profile_config = {"model": {"default": "grok-4.7", "provider": "xai-oauth",
+                                          "parameters": {"existing_param": "keep"}},
                                "platform_toolsets": {"telegram": ["existing-tools"]},
                                "mcp_servers": {"existing-server": {"command": "keep-me"}},
                                "skills": {"disabled": ["keep-disabled"]}}
@@ -45,8 +46,11 @@ class ConfigureTests(unittest.TestCase):
         self.assertEqual(cfg["platform_toolsets"]["telegram"], ["existing-tools"])
         self.assertEqual(cfg["skills"], self.profile_config["skills"])
         self.assertEqual(cfg["mcp_servers"]["existing-server"], {"command": "keep-me"})
-        self.assertEqual(cfg["model"]["provider"], "openai-codex")
-        self.assertEqual(cfg["model"]["default"], "gpt-6.1-terra")
+        self.assertEqual(cfg["model"]["provider"], "cliproxy")
+        self.assertEqual(cfg["model"]["default"], "devin/swe-2")
+        self.assertEqual(cfg["model"]["max_output_tokens"], 128000)
+        self.assertEqual(cfg["model"]["parameters"]["reasoning_effort"], "max")
+        self.assertEqual(cfg["model"]["parameters"]["existing_param"], "keep")
         self.assertEqual((self.profile / "SOUL.md").read_bytes(), soul)
         self.assertEqual(cfg["platform_toolsets"]["api_server"], ["stt", "catthew-household"])
         self.assertEqual(cfg["known_plugin_toolsets"]["api_server"], ["homeassistant"])

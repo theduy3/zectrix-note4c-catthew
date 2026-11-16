@@ -109,7 +109,9 @@ def configure(root, project, python, state):
     for target in (root_cfg, cfg):
         target.setdefault("known_plugin_toolsets", {})["api_server"] = catalog["plugins"]
         target.setdefault("known_builtin_toolsets", {})["api_server"] = catalog["builtins"]
-    cfg.setdefault("model", {}).update({"provider": "openai-codex", "default": "gpt-6.1-terra"})
+    model = cfg.setdefault("model", {})
+    model.update({"provider": "cliproxy", "default": "devin/swe-2", "max_output_tokens": 128000})
+    model.setdefault("parameters", {})["reasoning_effort"] = "max"
     _replace_grok(cfg["model"])
     if isinstance(cfg.get("auxiliary"), dict):
         _replace_grok(cfg["auxiliary"])
@@ -160,7 +162,7 @@ def configure(root, project, python, state):
             elif path.exists():
                 path.unlink()
         raise
-    return {"model": "gpt-6.1-terra", "provider": "openai-codex", "soul_sha256": soul_hash,
+    return {"model": "devin/swe-2", "provider": "cliproxy", "soul_sha256": soul_hash,
             "listener": "127.0.0.1:8642", "tool_servers": list(SERVERS), "backup": str(backup)}
 
 
