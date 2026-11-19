@@ -41,6 +41,19 @@ class MCPBoundaryTests(unittest.TestCase):
         self.journal.complete(request["id"], "Your tasks are ready.")
         self.assertEqual(self.journal.page(request["id"]), "today")
 
+    def test_weather_tool_reports_conditions_and_show_page_accepts_weather(self):
+        self.safe.weather = SimpleNamespace(describe=lambda: "It is 6 degrees with overcast.")
+        self.assertEqual(self.safe.call("household_weather", {}),
+                         {"ok": True, "weather": "It is 6 degrees with overcast."})
+        self.assertEqual(self.calls, [])
+        request = self.journal.accept("note4c", "weather-voice", b"wav")
+        self.journal.claim()
+        self.journal.begin_agent(request["id"], "show the weather")
+        self.assertEqual(self.safe.call("note4c_show_page", {"request_id": request["id"], "page": "weather"}),
+                         {"ok": True, "page": "weather"})
+        self.journal.complete(request["id"], "Here is the weather.")
+        self.assertEqual(self.journal.page(request["id"]), "weather")
+
     def test_memory_operations_share_records_without_page_or_calendar_actions(self):
         self.household.remember = lambda *args: self.calls.append(('remember', args)) or {'ok': True, 'id': 'note'}
         self.household.update_memory = lambda *args: self.calls.append(('update', args)) or {'ok': True, 'id': 'note'}

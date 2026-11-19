@@ -27,6 +27,7 @@ from hub.household import Household, PACIFIC
 from hub.httpserver import BoundedHTTPServer, read_body
 from hub.journal import Journal, QueueFull, RequestConflict
 from hub.wavutil import parse_wav
+from hub.weather import Weather
 
 
 class RateLimited(RuntimeError):
@@ -48,8 +49,9 @@ class TerminalState:
         self.submission_lock = threading.Lock()
         self.notification_lock = threading.Lock()
         self.submissions = deque()
-        self.cache = {"tasks": [], "groceries": []}
-        self.errors = {"vault": True}
+        self.cache = {"tasks": [], "groceries": [], "weather": None}
+        self.errors = {"vault": True, "weather": True}
+        self.weather = Weather()
         self.generated_at = ""
         self.cache_path = journal.path.with_name("household-view.json")
         self._load_cached_view()
@@ -75,8 +77,8 @@ class TerminalState:
                 return
             saved = json.loads(self.cache_path.read_text())
             cache = saved["cache"]
-            if set(cache) == {"tasks", "groceries"} and all(isinstance(x, list) for x in cache.values()):
-                self.cache = cache
+            if isinstance(cache.get("tasks"), list) and isinstance(cache.get("groceries"), list):
+                self.cache.update(cache)
                 self.generated_at = str(saved["generated_at"])
         except (OSError, ValueError, KeyError, TypeError):
             pass  # A derived cache can be rebuilt; it is never authoritative.
@@ -113,6 +115,14 @@ class TerminalState:
         except Exception:
             with self.lock:
                 self.errors["vault"] = True
+        try:
+            weather = self.weather.snapshot()
+        except Exception:
+            weather = None
+        with self.lock:
+            if weather is not None:
+                self.cache["weather"] = weather
+            self.errors["weather"] = weather is None or weather.get("stale", False)
         with self.lock:
             self.generated_at = datetime.now(PACIFIC).isoformat(timespec="seconds")
             self._save_cached_view()
@@ -180,7 +190,8 @@ class TerminalState:
                 self.journal.begin_agent(job["id"], text)
                 agent_started = True
                 prompt = ("Catthew Note4C voice channel: have a general conversation on any topic, with a concise English reply for speech only. "
-                          "Tasks and Grocery Shopping are the only display pages, not limits on what we can discuss. "
+                          "Weather, Tasks and Grocery Shopping are the only display pages, not limits on what we can discuss. "
+                          "When asked about weather, use household_weather and answer verbally; select page weather only when asked to show the weather. "
                           "For remembered household facts, inventory and item locations, use household_search_notes to check current shared records. "
                           "Use household_remember to save user-provided facts on Bluehost for retrieval from Telegram and this device; "
                           "use household_update_memory with the latest revision to correct an existing managed fact. "
@@ -311,7 +322,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/v1/frame":
             query = parse_qs(parsed.query)
-            page = query.get("page", ["today"])[0]
+            page = query.get("page", ["weather"])[0]
             if len(page) > 32:
                 self.send(400, {"error": "invalid page"})
                 return

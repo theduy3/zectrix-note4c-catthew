@@ -54,10 +54,11 @@ class FrameTests(unittest.TestCase):
         view["groceries"] = [{"id": str(i), "item": "Grocery " + str(i), "state": "needed"} for i in range(100)]
         daily = renderer.render(view, "today", now=NOW)
         grocery = renderer.render(view, daily.next_page, now=NOW)
-        self.assertEqual((daily.page, grocery.page), ("today", "groceries"))
-        self.assertEqual((daily.previous_page, grocery.previous_page), ("groceries", "today"))
-        self.assertEqual(grocery.next_page, "today")
-        self.assertTrue(all(frame.pages == 2 and len(frame.pixels) == 30000 for frame in (daily, grocery)))
+        weather = renderer.render(view, grocery.next_page, now=NOW)
+        self.assertEqual((weather.page, daily.page, grocery.page), ("weather", "today", "groceries"))
+        self.assertEqual((weather.next_page, daily.next_page, grocery.next_page), ("today", "groceries", "weather"))
+        self.assertEqual((weather.previous_page, daily.previous_page, grocery.previous_page), ("groceries", "weather", "today"))
+        self.assertTrue(all(frame.pages == 3 and len(frame.pixels) == 30000 for frame in (daily, grocery, weather)))
 
     def test_tasks_show_today_only_and_exclude_groceries(self):
         renderer, view = Renderer(), fixture()
@@ -99,6 +100,36 @@ class FrameTests(unittest.TestCase):
         self.assertNotIn("Ask Catthew to add groceries.", labels)
         self.assertNotIn("0 items to buy", labels)
 
+
+    def test_weather_page_draws_forecast_and_missing_data_safe(self):
+        renderer = Renderer()
+        view = fixture()
+        weather = {"stale": False,
+                   "current": {"temp_c": 6, "code": 3, "condition": "overcast", "label": "Cloudy",
+                               "icon": "cloud", "high_c": 9, "low_c": 2, "precip_prob": 3, "wind_kmh": 9},
+                   "hourly": [{"label": "Now", "code": 3, "condition": "Cloudy", "icon": "cloud",
+                               "temp_c": 6, "precip_prob": 12}] * 6,
+                   "daily": [{"day": "Today", "code": 61, "condition": "Rain", "icon": "rain",
+                              "high_c": 9, "low_c": 2, "precip_prob": 55}] * 7}
+        view["weather"] = weather
+        frame = renderer.render(view, "weather", now=NOW)
+        self.assertEqual((frame.page, frame.next_page, frame.pages), ("weather", "today", 3))
+        self.assertEqual(len(frame.pixels), 30000)
+        self.assertNotEqual(frame.pixels, renderer.render(view, "today", now=NOW).pixels)
+        view["weather"] = None
+        fallback = renderer.render(view, "weather", now=NOW)
+        self.assertEqual(fallback.page, "weather")
+
+    def test_night_page_is_not_part_of_daytime_rotation(self):
+        renderer = Renderer()
+        view = fixture()
+        night = renderer.render(view, "night", now=NOW)
+        self.assertEqual((night.page, night.next_page, night.previous_page), ("night", "weather", "weather"))
+        self.assertEqual(len(night.pixels), 30000)
+        for page in ("weather", "today", "groceries"):
+            frame = renderer.render(view, page, now=NOW)
+            self.assertNotEqual(frame.next_page, "night")
+            self.assertNotEqual(frame.previous_page, "night")
 
     def test_hidden_calendar_and_notes_changes_do_not_refresh_either_page(self):
         renderer = Renderer()

@@ -53,9 +53,19 @@ class Journal:
             CREATE INDEX IF NOT EXISTS requests_queue ON requests(status, created);
             CREATE TABLE IF NOT EXISTS request_pages (
                 request_id TEXT PRIMARY KEY,
-                page TEXT NOT NULL CHECK(page IN ('today','groceries'))
+                page TEXT NOT NULL CHECK(page IN ('weather','today','groceries'))
             );
         """)
+        row = self._db.execute("SELECT sql FROM sqlite_master WHERE name='request_pages'").fetchone()
+        if row is not None and "'weather'" not in row["sql"]:
+            with self._db:
+                self._db.execute("ALTER TABLE request_pages RENAME TO request_pages_old")
+                self._db.execute("""CREATE TABLE request_pages (
+                        request_id TEXT PRIMARY KEY,
+                        page TEXT NOT NULL CHECK(page IN ('weather','today','groceries'))
+                    )""")
+                self._db.execute("INSERT INTO request_pages SELECT * FROM request_pages_old")
+                self._db.execute("DROP TABLE request_pages_old")
 
     def close(self):
         with self._lock:
@@ -157,7 +167,7 @@ class Journal:
                 raise ValueError("request is not transcribing")
 
     def set_page(self, request_id: str, page: str):
-        if page not in ("today", "groceries"):
+        if page not in ("weather", "today", "groceries"):
             raise ValueError("unknown device page")
         with self._lock, self._db:
             cursor = self._db.execute("""INSERT INTO request_pages(request_id,page)
