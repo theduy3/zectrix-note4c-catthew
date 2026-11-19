@@ -55,6 +55,19 @@ class ConfigureTests(unittest.TestCase):
         self.assertIn("EXISTING_SETTING=preserved", (self.profile / ".env").read_text())
         self.assertEqual((self.state / "terminal.env").stat().st_mode & 0o777, 0o600)
 
+    def test_catthew_uses_direct_tool_catalog_without_changing_other_tool_settings(self):
+        self.profile_config['tools'] = {'tool_search': {'enabled': 'auto', 'max_search_limit': 9}, 'preserve_this': {'enabled': True}}
+        self.root_config['tools'] = {'tool_search': {'enabled': 'auto'}}
+        (self.profile / 'config.yaml').write_text(yaml.safe_dump(self.profile_config))
+        (self.root / 'config.yaml').write_text(yaml.safe_dump(self.root_config))
+        configure(self.root, self.project, self.python, self.state)
+        cfg = yaml.safe_load((self.profile / 'config.yaml').read_text())
+        root = yaml.safe_load((self.root / 'config.yaml').read_text())
+        self.assertEqual(cfg['tools'], {'tool_search': {'enabled': 'off', 'max_search_limit': 9}, 'preserve_this': {'enabled': True}})
+        self.assertEqual(root['tools'], self.root_config['tools'])
+        self.assertEqual(cfg['platform_toolsets']['api_server'], ['stt', 'catthew-household'])
+        self.assertEqual(cfg['platform_toolsets']['telegram'], ['existing-tools'])
+
     def test_virtualenv_interpreter_symlink_is_not_resolved_away(self):
         target = Path(self.tmp.name) / "real-python"
         target.touch()

@@ -4,6 +4,14 @@ Approval: canvas fb-65 and user message “approved plan”. Source of truth: `d
 
 Current feature workspace: `/Users/theduy/Repo/zectrix-note4c-catthew-memory`, branch `feat/shared-catthew-memory`. Default `main` checkout: `/Users/theduy/Repo/zectrix-note4c-catthew`. Standalone repository: https://github.com/theduy3/zectrix-note4c-catthew. Product baseline: `c74fe4dfaf440204fd58b57d6c0a65d0c9936c6b`, preserving history from original base `edd75fd7ea7e9879b141a84aa39ce2c74b6c92bc`. The original fork and unmerged PR are retained at https://github.com/theduy3/hearth-catthew-fork-archive/pull/1. No old PR was merged.
 
+## Voice-response speed
+
+Performance worktree: `/Users/theduy/Repo/zectrix-note4c-catthew-speed`, branch `perf/voice-latency`, based on `feat/shared-catthew-memory`. Catthew's central profile now sets `tools.tool_search.enabled: off`, exposing its small existing catalog directly. API/channel tool selections, model, voice, shared records and two-screen behavior are unchanged; no service restart or device flash was needed.
+
+Three fixed-WAV knowledge-query runs per setting measured median server-side audio readiness24.6145s →11.9162s (51.6% improvement), with real Whisper/Catthew/Joe, isolated journals and stubbed display lists. Discovery calls fell1→0; lookups2–3→1–2; all answers used the saved preference correctly. Recording/upload/device playback are excluded. Initial greeting controls were noisy/slower and triggered automatic rollback. A repeat in persistent conversations with one excluded warmup and3measured turns gave3.9973s →2.9167s, after which the winning setting was retained. No universal greeting/cold-start claim is made.
+
+152hosttests pass; bounded independent review of the configurator/test change found no confirmed defect and noted that this is a whole-Catthew discovery setting. VPS release checks and784existing task/protected identity/credential/memory file checks pass. Only the measured profile setting differs semantically from its backup. Private measurements, runner and rollback snapshot are under `catthew-terminal-state/voice-speed-benchmark/`. The configurator preserves the winning setting for future setup. PRs remain unmerged.
+
 ## General voice and shared knowledge
 
 The user clarified that the already-connected Note4C must support general conversation with Catthew, including household inventory remembered on Bluehost and retrievable from Telegram. Tasks/Grocery are display views only. API native tools remain restricted; existing SOUL and curated prompt-memory files are unchanged. Catthew-managed `kittyggup` reference notes now support safe remember/update through the shared household MCP, with live search, exact revisions, retry IDs and retained history. Existing family reference notes remain read-only.

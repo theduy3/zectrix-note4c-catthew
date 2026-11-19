@@ -1,6 +1,7 @@
 #include <atomic>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <mutex>
 #include <new>
 #include "driver/gpio.h"
@@ -15,6 +16,7 @@
 #include "hearth_audio.h"
 #include "hearth_config.h"
 #include "hearth_net.h"
+#include "hearth_pages.h"
 #include "hearth_protocol.h"
 #include "hearth_wifi.h"
 #include "nvs_flash.h"
@@ -40,7 +42,10 @@ uint32_t g_pending_nav=0,g_nav=0;
 Upload* g_upload=nullptr;
 HearthFrameInfo g_displayed{},g_navigation{};
 int g_steps=0;
-char g_desired[33]="today",g_client[129]{},g_played[33]{},g_dismissed[33]{},g_scheduled[33]{},g_page_applied[33]{},g_ack[33]{};
+char g_desired[33]="weather",g_client[129]{},g_played[33]{},g_dismissed[33]{},g_scheduled[33]{},g_page_applied[33]{},g_ack[33]{};
+std::atomic<int64_t> g_voice_until{0},g_last_activity{0},g_night_fetch_began{0};
+int g_last_slot=-1;
+bool g_was_day=false,g_night_frame_sent=false;
 bool g_have_frame=false,g_suppress_audio=false;
 char g_audio_target[33]{};
 unsigned g_audio_attempts=0;
@@ -302,6 +307,7 @@ void NetworkTask(void*) {
                     if(completed && status.page[0] && std::strcmp(g_page_applied,status.id)) {
                         Copy(g_desired,sizeof(g_desired),status.page);g_steps=0;++g_nav;
                         Copy(g_page_applied,sizeof(g_page_applied),status.id);
+                        g_voice_until=now+600000000;g_last_activity=now;
                     }
                     if(std::strcmp(g_audio_target,status.id)) {Copy(g_audio_target,sizeof(g_audio_target),status.id);g_audio_attempts=0;g_audio_retry_after=0;}
                     if(completed && speech_ready && !g_suppress_audio && !g_audio_busy.load() && !g_record.load() && g_audio_attempts<3 && now>=g_audio_retry_after && std::strcmp(status.id,g_played) && std::strcmp(status.id,g_dismissed) && std::strcmp(status.id,g_scheduled)) {
@@ -376,6 +382,9 @@ extern "C" void app_main() {
     if(result==ESP_ERR_NVS_NO_FREE_PAGES || result==ESP_ERR_NVS_NEW_VERSION_FOUND) {ESP_ERROR_CHECK(nvs_flash_erase());result=nvs_flash_init();}
     ESP_ERROR_CHECK(result);
     ESP_ERROR_CHECK(g_board.Init());
+    setenv("TZ","PST8PDT,M3.2.0,M11.1.0",1);
+    tzset();
+    g_last_activity=esp_timer_get_time();
     if(HearthConfigLoad(&g_config)!=ESP_OK) g_config={};
     HearthLoadId("upload",g_client,sizeof(g_client));HearthLoadId("played",g_played,sizeof(g_played));HearthLoadId("dismissed",g_dismissed,sizeof(g_dismissed));
     g_audio_commands=xQueueCreate(1,sizeof(AudioCommand));g_pcm=xQueueCreate(8,sizeof(AudioPacket));
@@ -391,6 +400,7 @@ extern "C" void app_main() {
     for(;;) {
         ZectrixButtonEvent event{};
         if(g_board.WaitButton(&event,pdMS_TO_TICKS(20)) && !g_shutdown.load()) {
+            g_last_activity=esp_timer_get_time();
             if(event.button==ZectrixButton::kOk && event.action==ZectrixButtonAction::kLongPress) {
                 if(HearthConfigComplete(g_config)) {
                     ++g_audio_generation;
@@ -408,9 +418,48 @@ extern "C" void app_main() {
         if(!indicator && g_error_until.load()>now) indicator=(now/150000)%4==0;
         else if(!indicator && (g_processing.load() || g_audio_busy.load())) indicator=(now/250000)%2==0;
         g_board.SetPowerLed(indicator);
+        time_t epoch=time(nullptr);
+        struct tm local{};
+        bool have_time=epoch>1700000000 && localtime_r(&epoch,&local);
+        if(have_time && !g_shutdown.load()) {
+            bool day=HearthDaytime(local.tm_hour);
+            g_was_day|=day;
+            if(g_voice_until && now>=g_voice_until) {
+                g_voice_until=0;
+                if(day) {
+                    std::lock_guard<std::mutex> lock(g_mutex);
+                    if(std::strcmp(g_desired,"weather")) {Copy(g_desired,sizeof(g_desired),"weather");g_steps=0;++g_nav;}
+                }
+            }
+            if(day) {
+                g_night_frame_sent=false;
+                int slot=HearthRotationSlot(local.tm_min);
+                if(!g_voice_until && (g_last_slot<0 || slot!=g_last_slot)) {
+                    std::lock_guard<std::mutex> lock(g_mutex);
+                    if(std::strcmp(g_desired,HearthSlotPage(slot))) {Copy(g_desired,sizeof(g_desired),HearthSlotPage(slot));g_steps=0;++g_nav;}
+                }
+                g_last_slot=slot;
+            } else if(!g_sleep_requested.load()) {
+                if((g_was_day || now-g_last_activity>=600000000) && !g_night_frame_sent) {
+                    std::lock_guard<std::mutex> lock(g_mutex);
+                    Copy(g_desired,sizeof(g_desired),"night");g_steps=0;++g_nav;
+                    g_night_frame_sent=true;g_night_fetch_began=now;
+                } else if(g_night_frame_sent) {
+                    bool painted;
+                    {std::lock_guard<std::mutex> lock(g_mutex);painted=!std::strcmp(g_displayed.page,"night");}
+                    if((painted && !g_display_busy.load()) || now-g_night_fetch_began>20000000) {g_sleep_requested=true;Quiesce();}
+                }
+            }
+        }
         if(g_sleep_requested.load() && g_audio_stopped.load() && g_display_stopped.load()) {
             g_board.SetPowerLed(false);
             esp_sleep_enable_ext1_wakeup_io(1ULL<<ZECTRIX_BUTTON_OK,ESP_EXT1_WAKEUP_ANY_LOW);
+            time_t slept=time(nullptr);
+            struct tm bedtime{};
+            if(slept>1700000000 && localtime_r(&slept,&bedtime)) {
+                int seconds=bedtime.tm_hour*3600+bedtime.tm_min*60+bedtime.tm_sec;
+                esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(HearthSecondsUntilHour(seconds,7))*1000000ULL);
+            }
             esp_deep_sleep_start();
         }
     }
