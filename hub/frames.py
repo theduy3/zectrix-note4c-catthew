@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -73,6 +74,78 @@ def _image():
     return image
 
 
+def _cloud_parts(cx, cy, w, h, grow=0.0):
+    g = grow
+    return [
+        (cx - w * 0.36 - g, cy - h * 0.02 - g, cx + w * 0.36 + g, cy + h * 0.34 + g),
+        (cx - w * 0.55 - g, cy + h * 0.04 - g, cx - w * 0.06 - g, cy + h * 0.44 + g),
+        (cx + w * 0.04 - g, cy - h * 0.16 - g, cx + w * 0.52 + g, cy + h * 0.30 + g),
+        (cx - w * 0.20 - g, cy - h * 0.30 - g, cx + w * 0.24 + g, cy + h * 0.14 + g),
+    ]
+
+
+def icon(draw, kind, cx, cy, size):
+    """Draw a weather glyph in a square box centered at cx, cy."""
+    s = size
+    if kind == "moon":
+        r = s * 0.36
+        draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=YELLOW)
+        draw.ellipse([cx - r * 0.55, cy - r * 0.75, cx + r * 1.05, cy + r * 0.45], fill=WHITE)
+        draw.arc([cx - r, cy - r, cx + r, cy + r], start=250, end=500,
+                 fill=BLACK, width=max(1, int(s * 0.05)))
+    elif kind == "sun":
+        r = s * 0.30
+        for a in range(8):
+            ang = a * math.pi / 4
+            draw.line([(cx + math.cos(ang) * (r + 1.5), cy + math.sin(ang) * (r + 1.5)),
+                       (cx + math.cos(ang) * (r + 4), cy + math.sin(ang) * (r + 4))],
+                      fill=BLACK, width=max(1, int(s * 0.06)))
+        draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=YELLOW,
+                     outline=BLACK, width=max(1, int(s * 0.07)))
+    elif kind == "partly":
+        sr = s * 0.20
+        sx, sy = cx - s * 0.18, cy - s * 0.20
+        draw.ellipse([sx - sr, sy - sr, sx + sr, sy + sr], fill=YELLOW, outline=BLACK, width=1)
+        ccx, ccy, cw, ch = cx + s * 0.10, cy + s * 0.16, s * 0.78, s * 0.52
+        for box in _cloud_parts(ccx, ccy, cw, ch, grow=1.2):
+            draw.ellipse(box, fill=BLACK)
+        for box in _cloud_parts(ccx, ccy, cw, ch):
+            draw.ellipse(box, fill=WHITE)
+    else:
+        ccx, ccy, cw, ch = cx, cy - s * 0.06, s * 0.92, s * 0.60
+        for box in _cloud_parts(ccx, ccy, cw, ch, grow=1.3):
+            draw.ellipse(box, fill=BLACK)
+        for box in _cloud_parts(ccx, ccy, cw, ch):
+            draw.ellipse(box, fill=WHITE)
+        bot = ccy + ch * 0.30
+        if kind in ("rain", "drizzle"):
+            count, length = (4, s * 0.11) if kind == "drizzle" else (3, s * 0.20)
+            for i in range(count):
+                dx = ccx - cw * 0.24 + i * (cw * 0.24)
+                draw.line([(dx, bot + 1), (dx - s * 0.03, bot + length)],
+                          fill=RED, width=max(1, int(s * 0.07)))
+        elif kind == "snow":
+            for i in range(3):
+                dx, dy = ccx - cw * 0.24 + i * (cw * 0.24), bot + s * 0.10
+                r = s * 0.05
+                draw.ellipse([dx - r, dy - r, dx + r, dy + r], fill=BLACK)
+        elif kind == "fog":
+            for i in range(2):
+                y = bot + s * (0.08 + i * 0.12)
+                draw.line([(ccx - cw * 0.28, y), (ccx + cw * 0.28, y)],
+                          fill=BLACK, width=max(1, int(s * 0.05)))
+        elif kind == "storm":
+            bx, by = ccx + cw * 0.05, bot + s * 0.02
+            bolt = [(bx + s * 0.02, by), (bx - s * 0.07, by + s * 0.20),
+                    (bx - s * 0.01, by + s * 0.20), (bx - s * 0.04, by + s * 0.36),
+                    (bx + s * 0.08, by + s * 0.14), (bx + s * 0.01, by + s * 0.14)]
+            draw.polygon(bolt, fill=YELLOW, outline=BLACK)
+
+
+def _deg(value):
+    return "--" if value is None else f"{value}\u00b0"
+
+
 def pack_pixels(pixels):
     if len(pixels) % 4 or any(value > 3 for value in pixels):
         raise ValueError("pixels must be groups of four BWRY indices")
@@ -124,17 +197,21 @@ class Renderer:
         _font(24, True)
 
     def render(self, view, page, *, now):
-        pages = ("today", "groceries")
+        if page == "night":
+            return self._night()
+        pages = ("weather", "today", "groceries")
         selected = pages.index(page) if page in pages else 0
         key = pages[selected]
         image = _image()
         draw = ImageDraw.Draw(image)
         draw.fontmode = "1"
-        titles = {"today": "Tasks", "groceries": "Grocery Shopping"}
+        titles = {"weather": "Weather", "today": "Tasks", "groceries": "Grocery Shopping"}
         _text(draw, 16, 12, titles[key], size=24, bold=True, width=270)
         _text(draw, 292, 17, now.strftime("%a, %b %-d"), size=12, width=94)
         draw.rectangle((16, 44, 383, 46), fill=YELLOW)
-        if key == "today":
+        if key == "weather":
+            self._weather(draw, view.get("weather"))
+        elif key == "today":
             tasks = [task for task in view.get("tasks", [])
                      if task.get("status") not in ("completed", "done", "cancelled")
                      and not task.get("grocery") and not event_elapsed(task, now)
@@ -169,14 +246,59 @@ class Renderer:
             _text(draw, 16, 252, "Calendar approval waiting in Telegram", size=12, color=RED)
         draw.line((16, 274, 383, 274), fill=BLACK)
         following, previous = pages[(selected + 1) % len(pages)], pages[(selected - 1) % len(pages)]
-        label = {"today": "tasks", "groceries": "groceries"}[following]
-        footer = f"Tap for {label} · {selected + 1}/2"
+        label = {"weather": "weather", "today": "tasks", "groceries": "groceries"}[following]
+        footer = f"Tap for {label} · {selected + 1}/{len(pages)}"
         if key == "groceries" and len(items) > 7:
             footer += f" · +{len(items) - 7} more"
         _text(draw, 16, 282, footer, size=11, width=285)
         # The device overlays its small OFFLINE badge in this reserved area.
         pixels = pack_frame(image)
-        return Frame(pixels, hashlib.sha256(pixels).hexdigest(), key, following, previous, 2)
+        return Frame(pixels, hashlib.sha256(pixels).hexdigest(), key, following, previous, len(pages))
+
+    @staticmethod
+    def _weather(draw, weather):
+        if not weather:
+            _text(draw, 16, 90, "Weather unavailable.", size=20)
+            return
+        current, hourly, daily = weather["current"], weather["hourly"], weather["daily"]
+        icon(draw, current["icon"], 40, 80, 48)
+        _text(draw, 72, 54, _deg(current["temp_c"]), size=38, bold=True, width=110)
+        _text(draw, 72, 96, current["label"], size=15, bold=True, width=180)
+        _text(draw, 72, 114, f"H:{_deg(current['high_c'])} L:{_deg(current['low_c'])}",
+              size=13, width=180)
+        _text(draw, 258, 60, f"Precip {current['precip_prob']}%", size=13, width=125)
+        wind = "--" if current["wind_kmh"] is None else str(current["wind_kmh"])
+        _text(draw, 258, 80, f"Wind {wind} km/h", size=13, width=125)
+        draw.line((16, 128, 383, 128), fill=BLACK)
+        cw = (383 - 16) / 6
+        for i, slot in enumerate(hourly[:6]):
+            x = 16 + i * cw
+            _text(draw, x, 134, slot["label"], size=9, bold=(i == 0), width=int(cw - 8))
+            icon(draw, slot["icon"], x + cw / 2, 156, 20)
+            _text(draw, x, 176, _deg(slot["temp_c"]), size=14, bold=True, width=int(cw - 8))
+            prob = slot["precip_prob"]
+            _text(draw, x, 194, f"{prob}%", size=8, width=int(cw - 8),
+                  color=RED if prob >= 50 else BLACK)
+        draw.line((16, 204, 383, 204), fill=BLACK)
+        dw = (383 - 16) / 7
+        for i, day in enumerate(daily[:7]):
+            x = 16 + i * dw
+            icon(draw, day["icon"], x + dw / 2, 213, 14)
+            _text(draw, x, 224, day["day"], size=9, bold=(i == 0), width=int(dw - 6))
+            _text(draw, x, 235, f"{_deg(day['high_c'])}/{_deg(day['low_c'])}",
+                  size=10, bold=True, width=int(dw - 6))
+
+    @staticmethod
+    def _night():
+        image = _image()
+        draw = ImageDraw.Draw(image)
+        draw.fontmode = "1"
+        icon(draw, "moon", 200, 95, 60)
+        _text(draw, 60, 150, "Press button", size=26, bold=True, width=280)
+        _text(draw, 60, 185, "to talk to Catthew", size=22, width=280)
+        _text(draw, 60, 230, "Good night", size=14, width=280)
+        pixels = pack_frame(image)
+        return Frame(pixels, hashlib.sha256(pixels).hexdigest(), "night", "weather", "weather", 3)
 
     @staticmethod
     def _task(draw, task, y):
