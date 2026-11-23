@@ -116,6 +116,9 @@ def configure(root, project, python, state):
     if isinstance(cfg.get("auxiliary"), dict):
         _replace_grok(cfg["auxiliary"])
     cfg.setdefault("platform_toolsets", {})["api_server"] = ["stt", *SERVERS]
+    # Catthew's small catalog is cheaper to expose directly than to describe on
+    # every factual query. This changes discovery, not the allowed capabilities.
+    cfg.setdefault("tools", {}).setdefault("tool_search", {})["enabled"] = "off"
     servers = cfg.setdefault("mcp_servers", {})
     for name in SERVERS:
         args = ["-m", "hub.household_mcp", "--vault", "/vault", "--profile", str(profile), "--state", str(state)]

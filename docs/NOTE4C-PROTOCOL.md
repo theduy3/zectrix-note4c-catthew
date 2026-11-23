@@ -18,6 +18,8 @@ Preserve the last frame during outages. Its reserved footer rectangle x304..383/
 
 ## Voice and delivery
 
+The backend forwards Note4C turns to the existing `/p/catthew/v1/chat/completions` route with `model_options: {"reasoning": {"effort": "low"}}`. This is a supported per-request Hermes option, not a profile/model/provider change. Other gateways keep their existing reasoning settings. The existing Terra model, central household records, tool scope and approvals remain in place; no device protocol or pairing change is needed.
+
 `GET /v1/device` is compact JSON: `request` is null or contains `id`, `client_id`, `status`, `speech_status`, `error`, `created`, plus `page`: an empty string, `today` or `groceries`. A page directive is recorded by `note4c_show_page(request_id, page)` only while that exact Note4C request is processing, and published only after the household projection has refreshed and the request has completed. Apply it once per request; otherwise retain the current page. Large source lists and reply text are rendered on the VPS, not parsed by firmware.
 
 `POST /v1/utterance` accepts mono signed16bit little-endian16kHz WAV up to30seconds. Set `Content-Type: audio/wav` and a stable `X-Hearth-Request-Id`. Preserve that upload ID and identical bytes across transport retries; conflicting reuse is409, capacity is429. Acceptance is202 with `request_id`. This is not a successful household action.

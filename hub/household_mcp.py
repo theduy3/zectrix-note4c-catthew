@@ -16,6 +16,7 @@ from hub.approvals import ApprovalStore
 from hub.calendar import FamilyCalendar
 from hub.household import Household, PACIFIC
 from hub.journal import Journal
+from hub.weather import Weather
 
 
 def _tool(name, description, fields, required, *, read_only=False, destructive=True):
@@ -26,12 +27,14 @@ def _tool(name, description, fields, required, *, read_only=False, destructive=T
             "annotations": {"readOnlyHint": read_only, "destructiveHint": destructive and not read_only}}
 
 
-SHOW_PAGE_TOOL = _tool("note4c_show_page", "Select Tasks (today) or Grocery Shopping (groceries) after answering an active Note4C voice request. Use the exact request reference from that turn. Does not change household records. Select today when asked for tasks, groceries when asked for the shopping list or to modify groceries; unrelated chat and inventory memory leave the page unchanged.",
-                       {"request_id": "Exact active Note4C request reference", "page": "Exactly today or groceries"}, ["request_id", "page"], destructive=False)
-SHOW_PAGE_TOOL["inputSchema"]["properties"]["page"]["enum"] = ["today", "groceries"]
+SHOW_PAGE_TOOL = _tool("note4c_show_page", "Select Weather (weather), Tasks (today) or Grocery Shopping (groceries) after answering an active Note4C voice request. Use the exact request reference from that turn. Does not change household records. Select today when asked for tasks, groceries when asked for the shopping list or to modify groceries, weather when asked to show the weather; answering a weather question alone does not change the page. Unrelated chat and inventory memory leave the page unchanged.",
+                       {"request_id": "Exact active Note4C request reference", "page": "Exactly weather, today or groceries"}, ["request_id", "page"], destructive=False)
+SHOW_PAGE_TOOL["inputSchema"]["properties"]["page"]["enum"] = ["weather", "today", "groceries"]
 
 SAFE_TOOLS = [
     SHOW_PAGE_TOOL,
+    _tool("household_weather", "Read the current Vancouver BC weather: temperature, condition, today's high/low, precipitation chance and wind. Use for any weather question.",
+          {}, [], read_only=True),
     _tool("household_tasks_read", "Read current Catthew-tagged tasks and their revisions without fetching Calendar. Use for task-only questions; filter today's non-grocery work for the Tasks screen.",
           {}, [], read_only=True),
     _tool("household_read", "Read verified family events and Catthew-tagged tasks. Returns task revisions and event etags for edits.",
@@ -71,6 +74,7 @@ class HouseholdTools:
         self.journal = journal
         self.household = household
         self.approvals = approvals
+        self.weather = Weather()
         self.tools = SAFE_TOOLS + PROPOSAL_TOOLS
         self.schemas = {tool["name"]: tool for tool in self.tools}
 
@@ -87,6 +91,8 @@ class HouseholdTools:
         if name == "note4c_show_page":
             self.journal.set_page(arguments["request_id"], arguments["page"])
             return {"ok": True, "page": arguments["page"]}
+        if name == "household_weather":
+            return {"ok": True, "weather": self.weather.describe()}
         if name == "household_tasks_read":
             return {"ok": True, "tasks": h.tasks(), "timezone": "America/Vancouver"}
         if name == "household_read":

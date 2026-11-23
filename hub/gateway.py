@@ -170,7 +170,8 @@ class Gateway:
                 raise ValueError("invalid session/device identifier")
         self._assert_household_policy()
         req = self._request("/v1/chat/completions",
-                            {"messages": [{"role": "user", "content": text}], "stream": True},
+                            {"messages": [{"role": "user", "content": text}], "stream": True,
+                             "model_options": {"reasoning": {"effort": "low"}}},
                             headers={"X-Hermes-Session-Id": session,
                                      "X-Hermes-Session-Key": "hearth:note4c:" + device})
         reply = []
