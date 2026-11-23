@@ -86,7 +86,8 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(headers["authorization"], "Bearer secret-for-test-only")
         self.assertEqual(headers["x-hermes-session-id"], "hearth-session")
         self.assertEqual(headers["x-hermes-session-key"], "hearth:note4c:kitchen")
-        self.assertEqual(body, {"messages": [{"role": "user", "content": "hello"}], "stream": True})
+        self.assertEqual(body, {"messages": [{"role": "user", "content": "hello"}], "stream": True,
+                                "model_options": {"reasoning": {"effort": "low"}}})
         self.assertEqual(runs, ["chatcmpl-test"])
 
     def test_lost_stream_is_uncertain_and_never_retried(self):

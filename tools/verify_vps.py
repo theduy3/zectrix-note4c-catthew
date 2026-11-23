@@ -18,7 +18,7 @@ profile=root/'profiles/catthew'
 c=yaml.safe_load((profile/'config.yaml').read_text())
 raw=(root/'catthew-terminal-state/terminal.env').read_text()
 checks={'model':c.get('model',{}).get('default')=='devin/swe-2',
-        'provider':c.get('model',{}).get('provider')=='cliproxy',
+        'provider':c.get('model',{}).get('provider')=='openai-api',
         'reasoning_effort':c.get('model',{}).get('parameters',{}).get('reasoning_effort')=='max',
         'soul_sha256':hashlib.sha256((profile/'SOUL.md').read_bytes()).hexdigest()}
 try:
@@ -30,16 +30,18 @@ with urlopen('http://127.0.0.1:8791/health',timeout=5) as response:
 state=json.loads((root/'gateway_state.json').read_text())
 checks['catthew_telegram']=state.get('platforms',{}).get('catthew:telegram',{}).get('state')=='connected'
 connection=http.client.HTTPSConnection('zectrix.theduy.cloud',timeout=15)
-connection.request('GET','/v1/frame?page=today',headers={'Authorization':'Bearer '+setting(raw,'HEARTH_DEVICE_TOKEN')})
+connection.request('GET','/v1/frame?page=weather',headers={'Authorization':'Bearer '+setting(raw,'HEARTH_DEVICE_TOKEN')})
 response=connection.getresponse();pixels=response.read(30001)
 checks['authenticated_color_frame']=response.status==200 and len(pixels)==30000 and response.getheader('ETag')=='"'+hashlib.sha256(pixels).hexdigest()+'"'
 checks['frame_navigation_headers']=all(response.getheader(name) for name in ('X-Hearth-Page','X-Hearth-Next','X-Hearth-Previous'))
-checks['two_page_navigation']=(response.getheader('X-Hearth-Page')=='today' and response.getheader('X-Hearth-Next')=='groceries' and response.getheader('X-Hearth-Previous')=='groceries' and response.getheader('X-Hearth-Pages')=='2')
+checks['three_page_navigation']=(response.getheader('X-Hearth-Page')=='weather' and response.getheader('X-Hearth-Next')=='today' and response.getheader('X-Hearth-Previous')=='groceries' and response.getheader('X-Hearth-Pages')=='3')
 connection.close()
-connection.request('GET','/v1/frame?page=groceries',headers={'Authorization':'Bearer '+setting(raw,'HEARTH_DEVICE_TOKEN')})
-response=connection.getresponse();pixels=response.read(30001)
-checks['two_page_navigation']=checks['two_page_navigation'] and response.status==200 and len(pixels)==30000 and response.getheader('ETag')=='"'+hashlib.sha256(pixels).hexdigest()+'"' and response.getheader('X-Hearth-Page')=='groceries' and response.getheader('X-Hearth-Next')=='today' and response.getheader('X-Hearth-Previous')=='today' and response.getheader('X-Hearth-Pages')=='2'
-connection.close()
+expected={'today':('groceries','weather'),'groceries':('weather','today')}
+for page,(nxt,prev) in expected.items():
+ connection.request('GET','/v1/frame?page='+page,headers={'Authorization':'Bearer '+setting(raw,'HEARTH_DEVICE_TOKEN')})
+ response=connection.getresponse();pixels=response.read(30001)
+ checks['three_page_navigation']=checks['three_page_navigation'] and response.status==200 and len(pixels)==30000 and response.getheader('ETag')=='"'+hashlib.sha256(pixels).hexdigest()+'"' and response.getheader('X-Hearth-Page')==page and response.getheader('X-Hearth-Next')==nxt and response.getheader('X-Hearth-Previous')==prev and response.getheader('X-Hearth-Pages')=='3'
+ connection.close()
 owned=[]
 for path in Path('/proc').iterdir():
  if not path.name.isdigit():continue

@@ -26,6 +26,7 @@ class JournalTests(unittest.TestCase):
         self.journal.begin_agent(request["id"], "show groceries")
         with self.assertRaises(ValueError):
             self.journal.set_page(request["id"], "chat")
+        self.journal.set_page(request["id"], "weather")
         self.journal.set_page(request["id"], "groceries")
         self.assertEqual(self.journal.page(request["id"]), "")
         self.journal.complete(request["id"], "Here are your groceries.")

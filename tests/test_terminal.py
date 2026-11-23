@@ -70,14 +70,14 @@ class TerminalTests(unittest.TestCase):
             self.assertEqual(response.headers["Content-Type"], "application/vnd.catthew.bwry2")
             self.assertEqual(response.headers["X-Hearth-Page"], "today")
             self.assertEqual(response.headers["X-Hearth-Next"], "groceries")
-            self.assertEqual(response.headers["X-Hearth-Previous"], "groceries")
-            self.assertEqual(response.headers["X-Hearth-Pages"], "2")
+            self.assertEqual(response.headers["X-Hearth-Previous"], "weather")
+            self.assertEqual(response.headers["X-Hearth-Pages"], "3")
             etag = response.headers["ETag"]
         with self.request("/v1/frame?page=groceries") as response:
             self.assertEqual(response.headers["X-Hearth-Page"], "groceries")
-            self.assertEqual(response.headers["X-Hearth-Next"], "today")
+            self.assertEqual(response.headers["X-Hearth-Next"], "weather")
             self.assertEqual(response.headers["X-Hearth-Previous"], "today")
-            self.assertEqual(response.headers["X-Hearth-Pages"], "2")
+            self.assertEqual(response.headers["X-Hearth-Pages"], "3")
         with self.assertRaises(HTTPError) as caught:
             self.request("/v1/frame?page=today", headers={"If-None-Match": etag})
         self.assertEqual(caught.exception.code, 304)
