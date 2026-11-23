@@ -2,7 +2,17 @@
 
 Approval: canvas fb-65 and user message “approved plan”. Source of truth: `docs/CATTHEW-NOTE4C-PLAN.md`.
 
-Workspace: `/Users/theduy/Repo/zectrix-note4c-catthew`, branch `main`. Standalone repository: https://github.com/theduy3/zectrix-note4c-catthew. Product baseline: `c74fe4dfaf440204fd58b57d6c0a65d0c9936c6b`, preserving history from original base `edd75fd7ea7e9879b141a84aa39ce2c74b6c92bc`. The original fork and unmerged PR are retained at https://github.com/theduy3/hearth-catthew-fork-archive/pull/1. No old PR was merged.
+Current feature workspace: `/Users/theduy/Repo/zectrix-note4c-catthew-memory`, branch `feat/shared-catthew-memory`. Default `main` checkout: `/Users/theduy/Repo/zectrix-note4c-catthew`. Standalone repository: https://github.com/theduy3/zectrix-note4c-catthew. Product baseline: `c74fe4dfaf440204fd58b57d6c0a65d0c9936c6b`, preserving history from original base `edd75fd7ea7e9879b141a84aa39ce2c74b6c92bc`. The original fork and unmerged PR are retained at https://github.com/theduy3/hearth-catthew-fork-archive/pull/1. No old PR was merged.
+
+## General voice and shared knowledge
+
+The user clarified that the already-connected Note4C must support general conversation with Catthew, including household inventory remembered on Bluehost and retrievable from Telegram. Tasks/Grocery are display views only. API native tools remain restricted; existing SOUL and curated prompt-memory files are unchanged. Catthew-managed `kittyggup` reference notes now support safe remember/update through the shared household MCP, with live search, exact revisions, retry IDs and retained history. Existing family reference notes remain read-only.
+
+The installed Hermes resolver already selects the household MCP for Telegram, so Telegram's existing configuration and native capabilities remain unchanged. Inventory memory does not create task/grocery records or select a page. Explicit shopping-list reads now select groceries as edits already did. A task-only read and task/grocery-only display cache remove unrelated Calendar/reference fetching from ordinary voice completion.
+
+151 host tests pass locally and in Linux CI; the pinned firmware build also passed run43622003478. A bounded independent review inspected the changed runtime/test code and found no confirmed actionable defect; it did not establish live Telegram or physical-device behavior. Runtime `d5019ae` is deployed with private backups under `catthew-terminal-state/shared-memory-d5019ae/`. Only the terminal service was restarted; the household MCP catalog was refreshed with exact profile-config restoration, without restarting the gateway or re-pairing/flashing the tablet.
+
+Actual Catthew API calls saved the user's real Note4C voice/shared-memory preference and retrieved it from a separate fresh session. SSE progress confirms household_remember and household_search_notes, with no page, task, grocery or Calendar mutation calls. One managed preference note was created; no invented inventory was seeded. All784existing task records and six protected config/credential/identity/curated-memory files retained their hashes. Both authenticated native frames and VPS release checks passed. The Telegram resolver selects the same server and its adapter is connected; no automated Telegram message was sent. Original whole-branch/physical acceptance gaps and a real household inventory conversation remain distinct.
 
 ## Standalone repository migration
 

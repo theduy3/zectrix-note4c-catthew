@@ -13,7 +13,7 @@ import threading
 import tempfile
 import time
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -48,8 +48,8 @@ class TerminalState:
         self.submission_lock = threading.Lock()
         self.notification_lock = threading.Lock()
         self.submissions = deque()
-        self.cache = {"events": [], "tasks": [], "notes": [], "groceries": []}
-        self.errors = {"calendar": True, "vault": True}
+        self.cache = {"tasks": [], "groceries": []}
+        self.errors = {"vault": True}
         self.generated_at = ""
         self.cache_path = journal.path.with_name("household-view.json")
         self._load_cached_view()
@@ -75,7 +75,7 @@ class TerminalState:
                 return
             saved = json.loads(self.cache_path.read_text())
             cache = saved["cache"]
-            if set(cache) == {"events", "tasks", "notes", "groceries"} and all(isinstance(x, list) for x in cache.values()):
+            if set(cache) == {"tasks", "groceries"} and all(isinstance(x, list) for x in cache.values()):
                 self.cache = cache
                 self.generated_at = str(saved["generated_at"])
         except (OSError, ValueError, KeyError, TypeError):
@@ -103,22 +103,12 @@ class TerminalState:
                     pass
 
     def refresh(self):
-        start = datetime.now(PACIFIC).replace(hour=0, minute=0, second=0, microsecond=0)
-        try:
-            events = self.household.calendar.list_events(start.isoformat(), (start + timedelta(days=7)).isoformat())
-            with self.lock:
-                self.cache["events"] = [{k: x.get(k) for k in ("id", "summary", "start", "end", "etag", "location")} for x in events]
-                self.errors["calendar"] = False
-        except Exception:
-            with self.lock:
-                self.errors["calendar"] = True
         try:
             self.household.complete_past_events(now=datetime.now(PACIFIC))
             tasks = [x for x in self.household.tasks() if x["status"] not in ("completed", "done", "cancelled")]
-            notes = self.household.reference_notes()
             groceries = self.household.groceries()["items"]
             with self.lock:
-                self.cache["tasks"], self.cache["notes"], self.cache["groceries"] = tasks, notes, groceries
+                self.cache["tasks"], self.cache["groceries"] = tasks, groceries
                 self.errors["vault"] = False
         except Exception:
             with self.lock:
@@ -149,7 +139,7 @@ class TerminalState:
     def poster(self, offsets=None):
         offsets = offsets or {}
         payload = self.view()
-        for name in ("events", "tasks", "notes", "groceries"):
+        for name in ("tasks", "groceries"):
             items, offset = payload[name], offsets.get(name, 0)
             payload[name] = items[offset:offset + 8]
             payload[name + "_total"] = len(items)
@@ -189,11 +179,16 @@ class TerminalState:
                     raise ValueError("no speech")
                 self.journal.begin_agent(job["id"], text)
                 agent_started = True
-                prompt = ("Family Note4C terminal: give a concise English reply for speech only. "
-                          "When asked for tasks, read current records and use note4c_show_page with page today. "
+                prompt = ("Catthew Note4C voice channel: have a general conversation on any topic, with a concise English reply for speech only. "
+                          "Tasks and Grocery Shopping are the only display pages, not limits on what we can discuss. "
+                          "For remembered household facts, inventory and item locations, use household_search_notes to check current shared records. "
+                          "Use household_remember to save user-provided facts on Bluehost for retrieval from Telegram and this device; "
+                          "use household_update_memory with the latest revision to correct an existing managed fact. "
+                          "Remembering inventory is not a task or grocery purchase and does not select a screen. "
+                          "When asked for tasks, use household_tasks_read and note4c_show_page with page today. "
                           "For a general task request report today's non-grocery work; answer explicit requests for other dates verbally. "
                           "The Tasks screen always remains limited to today's non-grocery tasks. "
-                          "When asked to change groceries, use the shared household_grocery tools and note4c_show_page with page groceries. "
+                          "When asked for the grocery shopping list or to change it, use the shared household_grocery tools and note4c_show_page with page groceries. "
                           "Pass this exact request reference as request_id to note4c_show_page; unrelated chat leaves the screen alone. "
                           "Confirm changes only from successful tool results. "
                           f"Household timezone America/Vancouver; local time {datetime.now(PACIFIC).isoformat(timespec='seconds')}. "
@@ -331,7 +326,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/v1/poster":
             try:
                 query = parse_qs(parsed.query)
-                offsets = {name: int(query.get(name + "_offset", ["0"])[0]) for name in ("events", "tasks", "notes")}
+                offsets = {name: int(query.get(name + "_offset", ["0"])[0]) for name in ("tasks", "groceries")}
                 if any(x < 0 or x > 100000 for x in offsets.values()):
                     raise ValueError("invalid offset")
             except ValueError:

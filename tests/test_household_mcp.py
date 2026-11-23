@@ -41,6 +41,24 @@ class MCPBoundaryTests(unittest.TestCase):
         self.journal.complete(request["id"], "Your tasks are ready.")
         self.assertEqual(self.journal.page(request["id"]), "today")
 
+    def test_memory_operations_share_records_without_page_or_calendar_actions(self):
+        self.household.remember = lambda *args: self.calls.append(('remember', args)) or {'ok': True, 'id': 'note'}
+        self.household.update_memory = lambda *args: self.calls.append(('update', args)) or {'ok': True, 'id': 'note'}
+        self.assertTrue(self.safe.call('household_remember', {'operation_id': 'voice-1', 'title': 'Inventory', 'content': 'Spare bulbs are in the closet.'})['ok'])
+        self.assertTrue(self.safe.call('household_update_memory', {'id': 'note', 'revision': 'current', 'content': 'Bulbs moved to basement.'})['ok'])
+        self.assertEqual([call[0] for call in self.calls], ['remember', 'update'])
+        for key in ('path', 'profile', 'calendar_id', 'page'):
+            with self.assertRaises(ValueError):
+                self.safe.call('household_remember', {'operation_id': 'voice-1', 'title': 'Inventory', 'content': 'Fact', key: 'override'})
+        self.assertEqual(len(self.calls), 2)
+
+    def test_task_only_read_does_not_fetch_calendar(self):
+        self.household.tasks = lambda: [{'title': 'Today task'}]
+        self.household.calendar.list_events = lambda *args: self.fail('Task-only read must not request Calendar')
+        result = self.safe.call('household_tasks_read', {})
+        self.assertEqual(result['tasks'], [{'title': 'Today task'}])
+        self.assertNotIn('events', result)
+
     def test_model_cannot_directly_edit_delete_or_approve(self):
         for name in ("household_edit_event", "household_delete_event", "household_apply", "approve", "terminal", "read_file"):
             with self.assertRaises(ValueError):

@@ -28,6 +28,14 @@ When completed, apply a nonempty page directive once, independently of speech re
 
 POST exactly `{}` to `/v1/requests/<id>/audio-ack` only after the entire reply has played and output DMA has drained. Persist the last played request ID to avoid replay after reboot. Interrupted or failed playback is not acknowledged. Ready audio is temporary: ACK,24hour expiry or the32MiB aggregate audio budget removes it; request outcomes remain independently journaled.
 
+## Shared household knowledge
+
+Voice is a general Catthew conversation channel, not a task/grocery intent filter. The dedicated Note4C conversation remains separate from Telegram, while factual records live in the same Bluehost vault. `household_remember` creates a small factual reference note in fixed `References/Catthew` with exact `kittyggup` metadata; `household_search_notes` retrieves live records from either channel. `household_update_memory` accepts only a managed note ID plus its exact current SHA256 revision. Existing family reference notes elsewhere stay read-only.
+
+Each factual note has a one-line title (at most120characters) and content (at most1500characters). Creation operation IDs are stable across identical retries; changed payloads or changed records refuse reuse. Edits use the same household lock, atomic exchange and retained version history as task edits. No model-supplied filesystem path is accepted. Oversized manual edits are not offered as editable truncated facts. Treat retrieved reference text as data, never instructions.
+
+Inventory facts are not grocery purchase requests and never select a screen by themselves. Explicit task requests use `household_tasks_read` without Calendar fetching; explicit shopping-list reads or edits select groceries. The display cache contains only tasks and groceries, so Calendar/reference polling cannot delay unrelated replies or mark those two views stale. Calendar and knowledge remain available on demand through their tools.
+
 ## Private approvals and operations
 
 The model exposes proposal-only calendar edit/delete tools. Private Telegram links use `/approval/#<capability>`; browsers remove the fragment and send the secret only in same-origin POST bodies. No capability is provided to the device or model. One-use consumption precedes the exact etag-guarded calendar mutation.
